@@ -64,5 +64,6 @@ public class HelloJni extends Activity
     public native String decodeFromC(String txt,int leng);
     static {
         System.loadLibrary("hello-jni");
+
     }
 }
