@@ -17,6 +17,7 @@ package com.example.hellojni;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.TextView;
 
 
@@ -27,14 +28,16 @@ public class HelloJni extends Activity
     public void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-
         /* Create a TextView and set its content.
          * the text is retrieved by calling a native
          * function.
          */
         TextView  tv = new TextView(this);
-        tv.setText(this.encodeFromC("abc",3) + this.decodeFromC("bcd后",4)+",内核版本:"+stringFromJNI());
-        this.setContentView(tv);
+//        tv.setText(this.encodeFromC("abc",3) + this.decodeFromC("bcd后",4)+",内核版本:"+stringFromJNI());
+        String en= this.getAES("0123456789ABCDEF0123456789ABCDEF");
+        Log.d("aes",en);
+        tv.setText(en);
+        setContentView(tv);
     }
 
     /* A native method that is implemented by the
@@ -62,6 +65,7 @@ public class HelloJni extends Activity
      */
     public native String encodeFromC(String txt,int leng);
     public native String decodeFromC(String txt,int leng);
+    public native String getAES(String str);
     static {
         System.loadLibrary("hello-jni");
 

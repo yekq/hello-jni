@@ -15,6 +15,7 @@ model {
          */
         ndk {
             moduleName = 'hello-jni'
+            ldLibs.addAll(['log'])
             toolchain = 'clang'
             CFlags.addAll(['-Wall'])
         }
