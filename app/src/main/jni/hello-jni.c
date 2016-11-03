@@ -34,15 +34,22 @@ jstring charToJstring(JNIEnv* envPtr, char *src);
 #include "aes.h"
  void phex(uint8_t* str);
  void test_encrypt_ecb(uint8_t* buffer);
+ void encrypt_ecb(uint8_t* buffer);
+ void encrypt_ecb_item( uint8_t* in,uint8_t* buffer,uint8_t* key);
  void test_decrypt_ecb(void);
  void test_encrypt_ecb_verbose(void);
  void test_encrypt_cbc(void);
  void test_decrypt_cbc(void);
+
+ void test_test_encrypt_ecb_padding(void);
+
 //--------------aes128--------------
 
 //--------------16进制--------------
 void ByteToHexStr(const unsigned char* source, char* dest, int sourceLen);
 void Hex2Str( const char *sSrc,  char *sDest, int nSrcLen );
+void LOGEX(uint8_t* src,const int length);
+char* unsignedCharToChar(unsigned char* unChar,const int length);
 //--------------16进制--------------
 
 /* This is a trivial JNI example where we use a native method
@@ -298,10 +305,21 @@ jstring charToJstring(JNIEnv* envPtr, char *src) {
 void test(void);
 JNIEXPORT jstring JNICALL
 Java_com_example_hellojni_HelloJni_getAES(JNIEnv *env, jobject instance, jstring str_) {
-//    uint8_t out[32];
+    uint8_t out[32];
+//    memset(out,0,32);
 //    test_encrypt_ecb(out);
-    test_encrypt_ecb_verbose();
-    test();
+//    test_encrypt_ecb_verbose();
+//    char * a="hellowrld,123456";
+//    char *base64en=base64_encode(a,strlen(a));
+//    LOGE(base64en);
+//    test_decrypt_ecb();
+
+    uint8_t in[]="1234567890abcdef12";
+//    unsigned char a1=HEX[0];
+//    unsigned char a2=HEX[1];
+//    unsigned char a14=HEX[14];
+//    unsigned char a15=HEX[15];
+    encrypt_ecb_item(in,NULL,NULL);
     return getImportInfo(env,str_);
 }
 
@@ -369,50 +387,155 @@ void test_encrypt_ecb_verbose(void)
 
     // print the resulting cipher as 4 x 16 byte strings
     LOGE("ciphertext:\n");
-    for(int i = 0; i < 4; ++i)
+    for(int i = 0; i < 4; i++)
     {
         AES128_ECB_encrypt(plain_text + (i*16), key, buf+(i*16));
-        LOGE(buf + (i*16));
     }
     LOGE("加密之后的base64结果:");
-    char *result=base64_encode(buf,64);
+    char *result=base64_encode(unsignedCharToChar(buf,64),64);
     LOGE(result);
     uint8_t desResult[size];
     for (int k = 0; k < 4; ++k) {
-        
+
     }
     AES128_ECB_decrypt(buf,key,desResult);
-    
+
     LOGE("\n");
+}
+char* unsignedCharToChar(unsigned char* unChar,const int length)
+{
+    char* copy=NULL;
+    copy = (char *)malloc(length+1);
+    memset(copy,0,length+1);
+    for (int i = 0; i < length; i++) {
+        copy[i]=unChar[i];
+    }
+    return copy;
+}
+void LOGEX(uint8_t* str, const int length)
+{
+//    char copy[length+1];
+//    memset(copy,0,length+1);
+//    for (int i = 0; i < length; i++) {
+//        copy[i]=str[i];
+//    }
+    char* copy=unsignedCharToChar(str,length);
+    copy[length]='\0';
+    LOGE(copy);
+//    LOGE(strcat((char*)str,'\0'));
 }
 
 
 //这里进行了解密跟加密的测试
 void test_encrypt_ecb(uint8_t buffer[])
 {
-    uint8_t key[] = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'a', 'b', 'c', 'd', 'e', 'f'};
-    uint8_t in[]  = {'h', 'e', 'l', 'l', 'o', 'w', 'r', 'l', 'd', ',', '1', '2', '3', '4', '5', '6'};
-//    uint8_t out[] = {0x3a, 0xd7, 0x7b, 0xb4, 0x0d, 0x7a, 0x36, 0x60, 0xa8, 0x9e, 0xca, 0xf3, 0x24, 0x66, 0xef, 0x97};
+//    uint8_t key[] = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'a', 'b', 'c', 'd', 'e', 'f'};
+    uint8_t key[]="1234567890abcdef";
+//    uint8_t in[16]  = {'1', 0x0f, 0x0f, 0x0f,0x0f, 0x0f, 0x0f,0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f};
+//    uint8_t in[]="hellowrld,123456";
+//    uint8_t out[] = {0x3a, 0xd7,  0x7b, 0xb4, 0x0d, 0x7a, 0x36, 0x60, 0xa8, 0x9e, 0xca, 0xf3, 0x24, 0x66, 0xef, 0x97};
 //    uint8_t buffer[16];
-    int length=32;
+    uint8_t in[16];
+    memset(in,0x0f,16);
+    in[0]='1';
+
+    int length=16;
     LOGE("输入: ");
-    LOGE(in);
+    LOGEX(in,16);
     LOGE("输入,转码:");
-    LOGE(base64_encode(in, length));
+    LOGE(base64_encode(in, 16));
 
     //------------开始加密
     AES128_ECB_encrypt(in, key, buffer);
 
     LOGE("加密结果:");
-    LOGE(base64_encode(buffer, length));
+    LOGE(base64_encode(buffer, 16));
 
     //------------开始解密
     uint8_t desOut[16];
     AES128_ECB_decrypt(buffer,key,desOut);
     LOGE("解密结果:");
-    LOGE(base64_encode(desOut, length));
+//    LOGE(base64_encode(desOut, length));
+    LOGEX(desOut,16);
 }
+void encrypt_ecb(uint8_t* buffer)
+{
 
+}
+void encrypt_ecb_item( uint8_t* in,uint8_t* out,uint8_t* key)
+{
+    //    uint8_t key[] = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'a', 'b', 'c', 'd', 'e', 'f'};
+//    uint8_t in[16]  = {'1', 0x0f, 0x0f, 0x0f,0x0f, 0x0f, 0x0f,0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f};
+//    uint8_t in[]="hellowrld,123456";
+//    uint8_t out[] = {0x3a, 0xd7,  0x7b, 0xb4, 0x0d, 0x7a, 0x36, 0x60, 0xa8, 0x9e, 0xca, 0xf3, 0x24, 0x66, 0xef, 0x97};
+//    uint8_t buffer[16];
+//    memset(in,0x0f,16);
+
+    int inLength= (int) strlen(in);//输入的长度
+    int remainder = inLength % 16;
+    LOGE("输入: ");
+    LOGEX(in,inLength);
+    LOGE("输入,转码:");
+    LOGE(base64_encode(in, inLength));
+
+    uint8_t *paddingInput;
+    int paddingInputLengt=0;
+    if(inLength<16)
+    {
+        paddingInput=(uint8_t*)malloc(16);
+        paddingInputLengt=16;
+        for (int i = 0; i < 16; i++) {
+            if (i < inLength) {
+                paddingInput[i] = in[i];
+            } else {
+                paddingInput[i] = HEX[16 - inLength];
+            }
+        }
+    }else
+    {
+        int group = inLength / 16;
+        int size = 16 * (group + 1);
+        paddingInput=(uint8_t*)malloc(size);
+        paddingInputLengt=size;
+
+        int dif = size - inLength;
+
+        for (int i = 0; i < size; i++) {
+            if (i < inLength) {
+                paddingInput[i] = in[i];
+            } else {
+                if (remainder == 0) {
+                    paddingInput[i] = 0x10;
+                } else {	//如果不足16位 少多少位就补几个几  如：少4为就补4个4 以此类推
+                    paddingInput[i] = HEX[dif];
+                }
+            }
+        }
+    }
+//    LOGE(unsignedCharToChar(paddingInput,paddingInputLengt));
+
+    int count=paddingInputLengt / 16;
+
+    //开始分段加密
+    out=(uint8_t*)malloc(paddingInputLengt);
+    for (int i = 0; i < count; ++i) {
+        AES128_ECB_encrypt(in+i*16, key, out+i*16);
+    }
+//    free(paddingInput);
+
+//    //------------开始加密
+//    AES128_ECB_encrypt(in, key, buffer);
+//
+//    LOGE("加密结果:");
+//    LOGE(base64_encode(buffer, 16));
+//
+//    //------------开始解密
+//    uint8_t desOut[16];
+//    AES128_ECB_decrypt(buffer,key,desOut);
+//    LOGE("解密结果:");
+////    LOGE(base64_encode(desOut, length));
+//    LOGEX(desOut,16);
+}
 void test_decrypt_cbc(void)
 {
     // Example "simulating" a smaller buffer...
@@ -477,13 +600,14 @@ void test_encrypt_cbc(void)
 
 void test_decrypt_ecb(void)
 {
-    uint8_t key[] = {0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c};
-    uint8_t in[]  = {0x3a, 0xd7, 0x7b, 0xb4, 0x0d, 0x7a, 0x36, 0x60, 0xa8, 0x9e, 0xca, 0xf3, 0x24, 0x66, 0xef, 0x97};
+//    uint8_t key[] = {0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c};
+//    uint8_t in[]  = {0x3a, 0xd7, 0x7b, 0xb4, 0x0d, 0x7a, 0x36, 0x60, 0xa8, 0x9e, 0xca, 0xf3, 0x24, 0x66, 0xef, 0x97};
     uint8_t out[] = {0x6b, 0xc1, 0xbe, 0xe2, 0x2e, 0x40, 0x9f, 0x96, 0xe9, 0x3d, 0x7e, 0x11, 0x73, 0x93, 0x17, 0x2a};
     uint8_t buffer[16];
-
-    AES128_ECB_decrypt(in, key, buffer);
-
+    uint8_t key[]="1234567890abcdef";
+    uint8_t in[]="qKCRVZ8FzL4t4oPFg/h1aqASwxI=";
+    AES128_ECB_decrypt(base64_decode(in,strlen(in)), key, buffer);
+    LOGE(unsignedCharToChar(buffer,strlen(buffer)));
     printf("ECB decrypt: ");
 
     if(0 == memcmp((char*) out, (char*) buffer, 16))
@@ -538,3 +662,4 @@ void Hex2Str( const char *sSrc,  char *sDest, int nSrcLen )
     }
     return ;
 }
+
