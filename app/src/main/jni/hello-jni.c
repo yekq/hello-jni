@@ -14,43 +14,8 @@
  * limitations under the License.
  *
  */
-#include <string.h>
-#include <jni.h>
-//--------------aes256--------------
-#include "aes256.h"
-#include "base64.h"
-#ifndef LOGE
-#define LOGE(...)  __android_log_print(ANDROID_LOG_ERROR,"native-jni",__VA_ARGS__)
-#endif
 
-jstring getImportInfo(JNIEnv *, jstring);
-jstring charToJstring(JNIEnv* envPtr, char *src);
-//--------------aes256--------------
-
-//--------------aes128--------------
-#define CBC 1
-#define ECB 1
-
-#include "aes.h"
- void phex(uint8_t* str);
- void test_encrypt_ecb(uint8_t* buffer);
- void encrypt_ecb(uint8_t* buffer);
- void encrypt_ecb_item( uint8_t* in,uint8_t* buffer,uint8_t* key);
- void test_decrypt_ecb(void);
- void test_encrypt_ecb_verbose(void);
- void test_encrypt_cbc(void);
- void test_decrypt_cbc(void);
-
- void test_test_encrypt_ecb_padding(void);
-
-//--------------aes128--------------
-
-//--------------16进制--------------
-void ByteToHexStr(const unsigned char* source, char* dest, int sourceLen);
-void Hex2Str( const char *sSrc,  char *sDest, int nSrcLen );
-void LOGEX(uint8_t* src,const int length);
-char* unsignedCharToChar(unsigned char* unChar,const int length);
-//--------------16进制--------------
+#include "hello-jni.h"
 
 /* This is a trivial JNI example where we use a native method
  * to return a new VM String. See the corresponding Java source
@@ -97,44 +62,6 @@ Java_com_example_hellojni_HelloJni_stringFromJNI( JNIEnv* env,
     return (*env)->NewStringUTF(env, "Kenny:Hello from JNI !  Compiled with ABI " ABI ".");
 }
 
-JNIEXPORT jstring JNICALL
-Java_com_example_hellojni_HelloJni_unimplementedStringFromJNI(JNIEnv *env, jobject instance,
-                                                              jstring s_) {
-    const char *s = (*env)->GetStringUTFChars(env, s_, 0);
-
-    // TODO
-
-    (*env)->ReleaseStringUTFChars(env, s_, s);
-
-    return (*env)->NewStringUTF(env, s);
-}
-
-//把java的字符串转换成c的字符串,使用反射
-char*   Jstring2CStr(JNIEnv*   env,   jstring   jstr)
-{
-    char*   rtn   =   NULL;
-    //1:先找到字节码文件
-    jclass   clsstring   =   (*env)->FindClass(env,"java/lang/String");
-    jstring   strencode   =   (*env)->NewStringUTF(env,"GB2312");
-    //2:通过字节码文件找到方法ID
-    jmethodID   mid   =   (*env)->GetMethodID(env,clsstring,   "getBytes",   "(Ljava/lang/String;)[B");
-    //3:通过方法id，调用方法
-    jbyteArray   barr=   (jbyteArray)(*env)->CallObjectMethod(env,jstr,mid,strencode); // String .getByte("GB2312");
-    //4:得到数据的长度
-    jsize   alen   =   (*env)->GetArrayLength(env,barr);
-    //5：得到数据的首地址
-    jbyte*   ba   =   (*env)->GetByteArrayElements(env,barr,JNI_FALSE);
-    //6:得到C语言的字符串
-    if(alen   >   0)
-    {
-        rtn   =   (char*)malloc(alen+1);         //"\0"
-        memcpy(rtn,ba,alen);
-        rtn[alen]=0;
-    }
-    (*env)->ReleaseByteArrayElements(env,barr,ba,0);  //
-    return rtn;
-}
-
 /*
  * Class:     com_demo_passwd_MainActivity
  * Method:    encodeFromC
@@ -176,151 +103,30 @@ JNIEXPORT jstring JNICALL Java_com_example_hellojni_HelloJni_decodeFromC
     //3:将c语言字符串转化为java字符串
     return (*env)->NewStringUTF(env, cstr);
 }
-jstring getImportInfo(JNIEnv* env, jstring mingwen) {
 
-    //0123456789ABCDEFGHIJKLMNOPQRSTUV
-    unsigned char key[32] = { 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
-                              0x38, 0x39, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49,
-                              0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54,
-                              0x55, 0x56 }; //密钥
-
-//    //0123456789ABCDEF
-//    unsigned char key[16] = { 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
-//                              0x38, 0x39, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46}; //密钥
-    //****************************************开始加密******************************************************
-    //1.初始化数据
-    //初始化向量
-    uint8_t iv[16] = { 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
-                       0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30 };
-
-    //初始化加密参数
-    aes256_context ctx;
-    aes256_init(&ctx, key);
-
-    //2.将jstring转为char
-    const char *mwChar = (*env)->GetStringUTFChars(env, mingwen, JNI_FALSE);
-
-    //3.分组填充加密
-    int i;
-    int mwSize = strlen(mwChar);
-    int remainder = mwSize % 16;
-    jstring entryptString;
-    if (mwSize < 16) {	//小于16字节，填充16字节，后面填充几个几 比方说10个字节 就要补齐6个6 11个字节就补齐5个5
-        uint8_t input[16];
-        for (i = 0; i < 16; i++) {
-            if (i < mwSize) {
-                input[i] = mwChar[i];
-            } else {
-                input[i] = 16 - mwSize;
-            }
-        }
-        //加密
-        uint8_t output[16];
-        aes256_encrypt_cbc(&ctx, input, iv, output);
-        //base64加密后然后jstring格式输出
-        char *enc = base64_encode(output, sizeof(output));
-        entryptString = charToJstring(env, enc);
-
-        free(enc);
-    } else {	//如果是16的倍数，填充16字节，后面填充0x10
-        int group = mwSize / 16;
-        int size = 16 * (group + 1);
-        uint8_t input[size];
-        for (i = 0; i < size; i++) {
-            if (i < mwSize) {
-                input[i] = mwChar[i];
-            } else {
-                if (remainder == 0) {
-                    input[i] = 0x10;
-                } else {	//如果不足16位 少多少位就补几个几  如：少4为就补4个4 以此类推
-                    int dif = size - mwSize;
-                    input[i] = dif;
-                }
-            }
-        }
-        //加密
-        uint8_t output[size];
-        aes256_encrypt_cbc(&ctx, input, iv, output);
-        //base64加密后然后jstring格式输出
-        char *enc = base64_encode(output, sizeof(output));
-        entryptString = charToJstring(env, enc);
-
-        free(enc);
-    }
-
-    //释放mwChar
-    (*env)->ReleaseStringUTFChars(env, mingwen, mwChar);
-
-    return entryptString;
-
-///////////////////////////*********************************************************************************
-//	//0123456789ABCDEF
-//	unsigned char input[64] = {
-//			0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
-//			0x38, 0x39, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46,
-//			0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
-//			0x38, 0x39, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46,
-//			0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
-//			0x38, 0x39, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46,
-//			0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10,
-//			0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10
-//	}; //明文
-//
-//
-//	//初始化向量
-//	uint8_t iv[16] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-//
-//	int i;
-//	aes256_context ctx;
-//	uint8_t enc_out[64];
-//	aes256_init(&ctx, key);
-//
-//	aes256_encrypt_cbc(&ctx, input, iv, enc_out);
-//	for(i = 0;i < 64;i++) {
-//		LOGE("================%i", enc_out[i]);
-//	}
-///////////////////////////**********************************************************************************
-
-//	return packageName;
-//	if (hashCode == -1739821499) {
-//		return retval;
-//	} else {
-//		return env->NewStringUTF(env, "error");
-//	}
-}
-
-jstring charToJstring(JNIEnv* envPtr, char *src) {
-    JNIEnv env = *envPtr;
-
-    jsize len = strlen(src);
-    jclass clsstring = env->FindClass(envPtr, "java/lang/String");
-    jstring strencode = env->NewStringUTF(envPtr, "UTF-8");
-    jmethodID mid = env->GetMethodID(envPtr, clsstring, "<init>",
-                                     "([BLjava/lang/String;)V");
-    jbyteArray barr = env->NewByteArray(envPtr, len);
-    env->SetByteArrayRegion(envPtr, barr, 0, len, (jbyte*) src);
-
-    return (jstring) env->NewObject(envPtr, clsstring, mid, barr, strencode);
-}
-void test(void);
 JNIEXPORT jstring JNICALL
 Java_com_example_hellojni_HelloJni_getAES(JNIEnv *env, jobject instance, jstring str_) {
-    uint8_t out[32];
-//    memset(out,0,32);
+//    uint8_t out[16];
+//    memset(out,0,16);
 //    test_encrypt_ecb(out);
+
 //    test_encrypt_ecb_verbose();
 //    char * a="hellowrld,123456";
 //    char *base64en=base64_encode(a,strlen(a));
 //    LOGE(base64en);
 //    test_decrypt_ecb();
 
-    uint8_t in[]="1234567890abcdef12";
 //    unsigned char a1=HEX[0];
 //    unsigned char a2=HEX[1];
 //    unsigned char a14=HEX[14];
 //    unsigned char a15=HEX[15];
-    encrypt_ecb_item(in,NULL,NULL);
-    return getImportInfo(env,str_);
+    const uint8_t *in= (const uint8_t *) (*env)->GetStringUTFChars(env, str_, JNI_FALSE);
+//    uint8_t in[]="1234567890abcdef12";
+    const uint8_t key[]="1234567890abcdef";
+    uint8_t *out2=NULL;
+    char *baseResult= AES_128_ECB_PKCS5Padding_Encrypt(in, out2, key);
+    (*env)->ReleaseStringUTFChars(env, str_, in);
+    return (*env)->NewStringUTF(env,baseResult);
 }
 
 void test(void)
@@ -336,16 +142,6 @@ void test(void)
 }
 
 //-------------------------------------AES128-------------------------------------
-// prints string as hex
- void phex(uint8_t* str)
-{
-    unsigned char i;
-    for(i = 0; i < 16; ++i)
-    {
-        LOGE("%.2x", str[i]);
-    }
-    LOGE("\n");
-}
 
 void test_encrypt_ecb_verbose(void)
 {
@@ -402,27 +198,15 @@ void test_encrypt_ecb_verbose(void)
 
     LOGE("\n");
 }
-char* unsignedCharToChar(unsigned char* unChar,const int length)
-{
-    char* copy=NULL;
-    copy = (char *)malloc(length+1);
-    memset(copy,0,length+1);
-    for (int i = 0; i < length; i++) {
-        copy[i]=unChar[i];
-    }
-    return copy;
-}
+
+/**
+ * 打印 unsigned的char
+ */
 void LOGEX(uint8_t* str, const int length)
 {
-//    char copy[length+1];
-//    memset(copy,0,length+1);
-//    for (int i = 0; i < length; i++) {
-//        copy[i]=str[i];
-//    }
     char* copy=unsignedCharToChar(str,length);
     copy[length]='\0';
     LOGE(copy);
-//    LOGE(strcat((char*)str,'\0'));
 }
 
 
@@ -458,13 +242,14 @@ void test_encrypt_ecb(uint8_t buffer[])
 //    LOGE(base64_encode(desOut, length));
     LOGEX(desOut,16);
 }
-void encrypt_ecb(uint8_t* buffer)
+
+/**
+ * 不定长加密,pkcs5padding
+ */
+char* AES_128_ECB_PKCS5Padding_Encrypt(uint8_t *in, uint8_t *out, const uint8_t *key)
 {
 
-}
-void encrypt_ecb_item( uint8_t* in,uint8_t* out,uint8_t* key)
-{
-    //    uint8_t key[] = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'a', 'b', 'c', 'd', 'e', 'f'};
+//    uint8_t key[] = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'a', 'b', 'c', 'd', 'e', 'f'};
 //    uint8_t in[16]  = {'1', 0x0f, 0x0f, 0x0f,0x0f, 0x0f, 0x0f,0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f};
 //    uint8_t in[]="hellowrld,123456";
 //    uint8_t out[] = {0x3a, 0xd7,  0x7b, 0xb4, 0x0d, 0x7a, 0x36, 0x60, 0xa8, 0x9e, 0xca, 0xf3, 0x24, 0x66, 0xef, 0x97};
@@ -477,7 +262,8 @@ void encrypt_ecb_item( uint8_t* in,uint8_t* out,uint8_t* key)
     LOGEX(in,inLength);
     LOGE("输入,转码:");
     LOGE(base64_encode(in, inLength));
-
+    LOGE("key:");
+    LOGEX(key,strlen(key));
     uint8_t *paddingInput;
     int paddingInputLengt=0;
     if(inLength<16)
@@ -499,43 +285,53 @@ void encrypt_ecb_item( uint8_t* in,uint8_t* out,uint8_t* key)
         paddingInputLengt=size;
 
         int dif = size - inLength;
-
         for (int i = 0; i < size; i++) {
             if (i < inLength) {
                 paddingInput[i] = in[i];
             } else {
                 if (remainder == 0) {
-                    paddingInput[i] = 0x10;
+                    //刚好是16倍数,就填充16个16
+                    paddingInput[i] = HEX[0];
                 } else {	//如果不足16位 少多少位就补几个几  如：少4为就补4个4 以此类推
                     paddingInput[i] = HEX[dif];
                 }
             }
         }
     }
-//    LOGE(unsignedCharToChar(paddingInput,paddingInputLengt));
-
     int count=paddingInputLengt / 16;
-
     //开始分段加密
     out=(uint8_t*)malloc(paddingInputLengt);
     for (int i = 0; i < count; ++i) {
-        AES128_ECB_encrypt(in+i*16, key, out+i*16);
+        AES128_ECB_encrypt(paddingInput+i*16, key, out+i*16);
     }
-//    free(paddingInput);
-
-//    //------------开始加密
-//    AES128_ECB_encrypt(in, key, buffer);
-//
-//    LOGE("加密结果:");
-//    LOGE(base64_encode(buffer, 16));
-//
-//    //------------开始解密
-//    uint8_t desOut[16];
-//    AES128_ECB_decrypt(buffer,key,desOut);
-//    LOGE("解密结果:");
-////    LOGE(base64_encode(desOut, length));
-//    LOGEX(desOut,16);
+    char * base64En=base64_encode(out,paddingInputLengt);
+    LOGE(base64En);
+    free(paddingInput);
+    free(out);
+    return base64En;
 }
+/**
+ * 不定长解密,pkcs5padding
+ */
+char* AES_128_ECB_PKCS5Padding_Decrypt(const char *in, char *out, const char *key)
+{
+    //加密前:1
+    //key:1234567890abcdef
+    //加密后:qkrxxA9fIF636aITDRJhcg==
+
+    in="qkrxxA9fIF636aITDRJhcg==";
+    key="1234567890abcdef";
+    uint8_t *inputDesBase64= (uint8_t *) base64_decode(in, strlen(in));
+    size_t inputLength=strlen(inputDesBase64);
+    out=malloc(inputLength);
+    //Base64转码
+    size_t count=inputLength/16;
+    for (size_t i = 0; i < count; ++i) {
+        AES128_ECB_decrypt(inputDesBase64+i*16,key,out+i*16);
+    }
+    return out;
+}
+
 void test_decrypt_cbc(void)
 {
     // Example "simulating" a smaller buffer...
@@ -621,45 +417,33 @@ void test_decrypt_ecb(void)
 }
 //-------------------------------------AES128-------------------------------------
 
-//-------------------------------------16进制转换---------------------------------
-//字节流转换为十六进制字符串
-void ByteToHexStr(const unsigned char* source, char* dest, int sourceLen)
+static char* add( const char *str)
 {
-    short i;
-    unsigned char highByte, lowByte;
+//     char staticStr[10]="abc";
+    strcat(staticStr,str);
+    return staticStr;
+}
+JNIEXPORT jstring JNICALL
+Java_com_example_hellojni_HelloJni_testStatic(JNIEnv *env, jobject instance, jstring str_) {
+    const char *str = (*env)->GetStringUTFChars(env, str_, 0);
 
-    for (i = 0; i < sourceLen; i++)
-    {
-        highByte = source[i] >> 4;
-        lowByte = source[i] & 0x0f ;
 
-        highByte += 0x30;
-
-        if (highByte > 0x39)
-            dest[i * 2] = highByte + 0x07;
-        else
-            dest[i * 2] = highByte;
-
-        lowByte += 0x30;
-        if (lowByte > 0x39)
-            dest[i * 2 + 1] = lowByte + 0x07;
-        else
-            dest[i * 2 + 1] = lowByte;
-    }
-    return ;
+//    (*env)->ReleaseStringUTFChars(env, str_, str);
+//    staticCount++;
+//    staticStr[0]=staticCount;
+    return (*env)->NewStringUTF(env, add(str));
 }
 
-//字节流转换为十六进制字符串的另一种实现方式
-void Hex2Str( const char *sSrc,  char *sDest, int nSrcLen )
-{
-    int  i;
-    char szTmp[3];
 
-    for( i = 0; i < nSrcLen; i++ )
-    {
-        sprintf( szTmp, "%02X", (unsigned char) sSrc[i] );
-        memcpy( &sDest[i * 2], szTmp, 2 );
-    }
-    return ;
+JNIEXPORT jstring JNICALL
+Java_com_example_hellojni_HelloJni_getDes(JNIEnv *env, jobject instance, jstring str_) {
+/*    const char *str = (*env)->GetStringUTFChars(env, str_, 0);
+
+    // TODO
+
+    (*env)->ReleaseStringUTFChars(env, str_, str);
+
+    return (*env)->NewStringUTF(env, returnValue);*/
+    char * desResult=AES_128_ECB_PKCS5Padding_Decrypt(NULL,NULL,NULL);
+    return (*env)->NewStringUTF(env, desResult);
 }
-

@@ -1,8 +1,12 @@
 #ifndef _AES_H_
 #define _AES_H_
 
+#include <android/log.h>
+#include <stdlib.h>
 #include <stdint.h>
-
+#include <jni.h>
+#include "base64.h"
+#include "Convert.h"
 
 // #define the macros below to 1/0 to enable/disable the mode of operation.
 //
@@ -22,6 +26,7 @@ static const unsigned  char HEX[16]={0x10,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x0
 
 #if defined(ECB) && ECB
 
+void AES128_ECB_RESET();
 void AES128_ECB_encrypt(uint8_t* input, const uint8_t* key, uint8_t *output);
 void AES128_ECB_decrypt(uint8_t* input, const uint8_t* key, uint8_t *output);
 

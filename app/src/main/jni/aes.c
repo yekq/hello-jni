@@ -33,8 +33,7 @@ NOTE:   String length must be evenly divisible by 16byte (str_len % 16 == 0)
 /*****************************************************************************/
 /* Includes:                                                                 */
 /*****************************************************************************/
-#include <stdint.h>
-#include <string.h> // CBC mode, for memset
+
 #include "aes.h"
 
 
@@ -70,7 +69,11 @@ static uint8_t RoundKey[176];
 
 // The Key input to the AES Program
 static const uint8_t* Key;
-
+void AES128_ECB_RESET()
+{
+    free(state);
+    free(RoundKey);
+}
 #if defined(CBC) && CBC
   // Initial Vector used only for CBC mode
   static uint8_t* Iv;

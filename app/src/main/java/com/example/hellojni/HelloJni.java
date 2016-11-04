@@ -18,7 +18,13 @@ package com.example.hellojni;
 import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
 import android.widget.TextView;
+
+import com.example.hellojni.R.id;
+import com.example.hellojni.R.layout;
 
 
 public class HelloJni extends Activity
@@ -28,16 +34,24 @@ public class HelloJni extends Activity
     public void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
+        this.setContentView(layout.hello_jni);
         /* Create a TextView and set its content.
          * the text is retrieved by calling a native
          * function.
          */
-        TextView  tv = new TextView(this);
+        TextView  tv = (TextView) this.findViewById(id.tv);
 //        tv.setText(this.encodeFromC("abc",3) + this.decodeFromC("bcd后",4)+",内核版本:"+stringFromJNI());
-        String en= this.getAES("0123456789ABCDEF0123456789ABCDEF");
+//        String en= this.getAES("1");
+        String en= getDes("1");
         Log.d("aes",en);
         tv.setText(en);
-        setContentView(tv);
+        final Button btn= (Button) this.findViewById(id.btn);
+        btn.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                btn.setText(HelloJni.this.testStatic("1"));
+            }
+        });
     }
 
     /* A native method that is implemented by the
@@ -45,29 +59,12 @@ public class HelloJni extends Activity
      * with this application.
      */
     public native String  stringFromJNI();
-
-    /* This is another native method declaration that is *not*
-     * implemented by 'hello-jni'. This is simply to show that
-     * you can declare as many native methods in your Java code
-     * as you want, their implementation is searched in the
-     * currently loaded native libraries only the first time
-     * you call them.
-     *
-     * Trying to call this function will result in a
-     * java.lang.UnsatisfiedLinkError exception !
-     */
-    public native String  unimplementedStringFromJNI(String s);
-
-    /* this is used to load the 'hello-jni' library on application
-     * startup. The library has already been unpacked into
-     * /data/data/com.example.hellojni/lib/libhello-jni.so at
-     * installation time by the package manager.
-     */
     public native String encodeFromC(String txt,int leng);
     public native String decodeFromC(String txt,int leng);
     public native String getAES(String str);
+    public native String getDes(String str);
+    public native String testStatic(String str);
     static {
         System.loadLibrary("hello-jni");
-
     }
 }
