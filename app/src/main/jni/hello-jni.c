@@ -105,7 +105,7 @@ JNIEXPORT jstring JNICALL Java_com_example_hellojni_HelloJni_decodeFromC
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_example_hellojni_HelloJni_getAES(JNIEnv *env, jobject instance, jstring str_) {
+Java_com_example_hellojni_HelloJni_getAESEn(JNIEnv *env, jobject instance, jstring str_) {
 //    uint8_t out[16];
 //    memset(out,0,16);
 //    test_encrypt_ecb(out);
@@ -265,6 +265,7 @@ char* AES_128_ECB_PKCS5Padding_Encrypt(uint8_t *in, uint8_t *out, const uint8_t 
     LOGE("key:");
     LOGEX(key,strlen(key));
     uint8_t *paddingInput;
+//    int paddingInputLengt=PKCS5Padding(inLength,in,paddingInput);
     int paddingInputLengt=0;
     if(inLength<16)
     {
@@ -304,6 +305,7 @@ char* AES_128_ECB_PKCS5Padding_Encrypt(uint8_t *in, uint8_t *out, const uint8_t 
     for (int i = 0; i < count; ++i) {
         AES128_ECB_encrypt(paddingInput+i*16, key, out+i*16);
     }
+    size_t enOutSize=strlen(out);
     char * base64En=base64_encode(out,paddingInputLengt);
     LOGE(base64En);
     free(paddingInput);
@@ -313,21 +315,44 @@ char* AES_128_ECB_PKCS5Padding_Encrypt(uint8_t *in, uint8_t *out, const uint8_t 
 /**
  * 不定长解密,pkcs5padding
  */
-char* AES_128_ECB_PKCS5Padding_Decrypt(const char *in, char *out, const char *key)
+uint8_t * AES_128_ECB_PKCS5Padding_Decrypt(const char *in, const uint8_t* key)
 {
     //加密前:1
     //key:1234567890abcdef
     //加密后:qkrxxA9fIF636aITDRJhcg==
 
-    in="qkrxxA9fIF636aITDRJhcg==";
+//    in="m74nCuZkzK13anBQRDWeOw==";//123456
+//    in="qkrxxA9fIF636aITDRJhcg==";//1
+//    in="LuD5WoRRcHq1tuEWZQHLHwLexWUsAhX5OvafAJ8PbVg=";//abcdefghijklmnop
+//    in="+R99oRBuckos5mdUqQHHeoja4/HYqWtqTM3cgl+E0a3p5i7DoLeBpq/mVUfuEh5D1VRn4Wt4TzHazvz931WfiA==";//57yW56CB5Y6f55CGOuWwhjPkuKrlrZfoioLovazmjaLmiJA05Liq5a2X6IqC
+    in="UUNc8Dh0OVZE9UyzJwWTSVkt3hgIxg0nfVHpSirRL3T1meUZDRUINWvoYfkcOEpL";//编码原理:将3个字节转换成4个字节
     key="1234567890abcdef";
     uint8_t *inputDesBase64= (uint8_t *) base64_decode(in, strlen(in));
-    size_t inputLength=strlen(inputDesBase64);
-    out=malloc(inputLength);
+    const size_t inputLength=strlen(inputDesBase64);
+    uint8_t *out=malloc(inputLength);
+    memset(out,0,inputLength);
     //Base64转码
     size_t count=inputLength/16;
+    if (count<=0)
+    {
+        count=1;
+    }
     for (size_t i = 0; i < count; ++i) {
-        AES128_ECB_decrypt(inputDesBase64+i*16,key,out+i*16);
+            AES128_ECB_decrypt(inputDesBase64+i*16,key,out+i*16);
+    }
+    int success=JNI_TRUE;
+    int lastChar=(int)out[inputLength-1];
+    for (int i = 0; i < lastChar; ++i) {
+        size_t index=inputLength-lastChar+i;
+        if (!HEX[lastChar]==out[index])
+        {
+            success=JNI_FALSE;
+        }
+    }
+    if(JNI_TRUE==success)
+    {
+        out[inputLength-lastChar]='\n';
+        memset(out+inputLength-lastChar+1,0,lastChar-1);
     }
     return out;
 }
@@ -436,7 +461,7 @@ Java_com_example_hellojni_HelloJni_testStatic(JNIEnv *env, jobject instance, jst
 
 
 JNIEXPORT jstring JNICALL
-Java_com_example_hellojni_HelloJni_getDes(JNIEnv *env, jobject instance, jstring str_) {
+Java_com_example_hellojni_HelloJni_getAESDe(JNIEnv *env, jobject instance, jstring str_) {
 /*    const char *str = (*env)->GetStringUTFChars(env, str_, 0);
 
     // TODO
@@ -444,6 +469,6 @@ Java_com_example_hellojni_HelloJni_getDes(JNIEnv *env, jobject instance, jstring
     (*env)->ReleaseStringUTFChars(env, str_, str);
 
     return (*env)->NewStringUTF(env, returnValue);*/
-    char * desResult=AES_128_ECB_PKCS5Padding_Decrypt(NULL,NULL,NULL);
+    char * desResult=AES_128_ECB_PKCS5Padding_Decrypt(NULL,NULL);
     return (*env)->NewStringUTF(env, desResult);
 }

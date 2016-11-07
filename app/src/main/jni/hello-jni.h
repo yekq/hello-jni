@@ -14,7 +14,7 @@
 #include "aes.h"
 
 char* AES_128_ECB_PKCS5Padding_Encrypt(uint8_t *in, uint8_t *out, const uint8_t *key);
-char* AES_128_ECB_PKCS5Padding_Decrypt(const char *in, char *out, const char *key);
+uint8_t *  AES_128_ECB_PKCS5Padding_Decrypt(const char *in, const uint8_t* key);
 void test(void);
 void test_encrypt_ecb(uint8_t* buffer);
 void test_decrypt_ecb(void);

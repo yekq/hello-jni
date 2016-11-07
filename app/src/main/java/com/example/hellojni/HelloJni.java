@@ -15,16 +15,13 @@
  */
 package com.example.hellojni;
 
+import android.R.color;
 import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.TextView;
-
-import com.example.hellojni.R.id;
-import com.example.hellojni.R.layout;
 
 
 public class HelloJni extends Activity
@@ -34,22 +31,23 @@ public class HelloJni extends Activity
     public void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-        this.setContentView(layout.hello_jni);
+        setContentView(R.layout.hello_jni);
         /* Create a TextView and set its content.
          * the text is retrieved by calling a native
          * function.
          */
-        TextView  tv = (TextView) this.findViewById(id.tv);
+        TextView  tv = (TextView) findViewById(R.id.tv);
 //        tv.setText(this.encodeFromC("abc",3) + this.decodeFromC("bcd后",4)+",内核版本:"+stringFromJNI());
 //        String en= this.getAES("1");
-        String en= getDes("1");
+        String en= this.getAESDe("1");
         Log.d("aes",en);
+        tv.setBackgroundResource(color.white);
         tv.setText(en);
-        final Button btn= (Button) this.findViewById(id.btn);
-        btn.setOnClickListener(new OnClickListener() {
+        final Button btn= (Button) findViewById(R.id.btn);
+        btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                btn.setText(HelloJni.this.testStatic("1"));
+                btn.setText(testStatic("1"));
             }
         });
     }
@@ -61,8 +59,8 @@ public class HelloJni extends Activity
     public native String  stringFromJNI();
     public native String encodeFromC(String txt,int leng);
     public native String decodeFromC(String txt,int leng);
-    public native String getAES(String str);
-    public native String getDes(String str);
+    public native String getAESEn(String str);
+    public native String getAESDe(String str);
     public native String testStatic(String str);
     static {
         System.loadLibrary("hello-jni");
