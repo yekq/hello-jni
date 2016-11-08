@@ -15,54 +15,79 @@
  */
 package com.example.hellojni;
 
-import android.R.color;
 import android.app.Activity;
 import android.os.Bundle;
-import android.util.Log;
+import android.support.v7.widget.AppCompatEditText;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.example.hellojni.R.id;
+import com.example.hellojni.R.layout;
 
-public class HelloJni extends Activity
-{
-    /** Called when the activity is first created. */
+
+public class HelloJni extends Activity implements OnClickListener {
+
+
+    private AppCompatEditText mEtEncrpt;
+    private Button mBtnEncrpt;
+    private AppCompatEditText mEtDecrypt;
+    private Button mBtnDecrypt;
+    private TextView mTvDecryptResult;
+    private TextView mTvCheck;
+
     @Override
-    public void onCreate(Bundle savedInstanceState)
-    {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.hello_jni);
-        /* Create a TextView and set its content.
-         * the text is retrieved by calling a native
-         * function.
-         */
-        TextView  tv = (TextView) findViewById(R.id.tv);
-//        tv.setText(this.encodeFromC("abc",3) + this.decodeFromC("bcd后",4)+",内核版本:"+stringFromJNI());
-//        String en= this.getAES("1");
-        String en= this.getAESDe("1");
-        Log.d("aes",en);
-        tv.setBackgroundResource(color.white);
-        tv.setText(en);
-        final Button btn= (Button) findViewById(R.id.btn);
-        btn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                btn.setText(testStatic("1"));
-            }
-        });
+        this.setContentView(layout.hello_jni);
+        this.initView();
+
+    }
+
+    private void initView() {
+        this.mEtEncrpt = (AppCompatEditText) this.findViewById(id.et_encrpt);
+        this.mBtnEncrpt = (Button) this.findViewById(id.btn_encrpt);
+        this.mEtDecrypt = (AppCompatEditText) this.findViewById(id.et_decrypt);
+        this.mBtnDecrypt = (Button) this.findViewById(id.btn_decrypt);
+        this.mTvDecryptResult = (TextView) this.findViewById(id.tv_decrypt_result);
+        this.mTvCheck = (TextView) this.findViewById(id.tv_check);
+
+        this.mBtnEncrpt.setOnClickListener(this);
+        this.mBtnDecrypt.setOnClickListener(this);
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case id.btn_encrpt:
+                this.mEtDecrypt.setText(this.getAESEn(this.mEtEncrpt.getText().toString()));
+                break;
+            case id.btn_decrypt:
+                String result= this.getAESDe(this.mEtDecrypt.getText().toString()).trim();
+                this.mTvDecryptResult.setText(result);
+                this.mTvCheck.setText(this.mEtEncrpt.getText().toString().equals(result)?"成功!与加密前一致":"失败!与加密前不一致");
+                break;
+        }
     }
 
     /* A native method that is implemented by the
      * 'hello-jni' native library, which is packaged
      * with this application.
      */
-    public native String  stringFromJNI();
-    public native String encodeFromC(String txt,int leng);
-    public native String decodeFromC(String txt,int leng);
+    public native String stringFromJNI();
+
+    public native String encodeFromC(String txt, int leng);
+
+    public native String decodeFromC(String txt, int leng);
+
     public native String getAESEn(String str);
+
     public native String getAESDe(String str);
-    public native String testStatic(String str);
+
     static {
         System.loadLibrary("hello-jni");
     }
+
+
 }

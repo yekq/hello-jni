@@ -13,8 +13,8 @@
 
 #include "aes.h"
 
-char* AES_128_ECB_PKCS5Padding_Encrypt(uint8_t *in, uint8_t *out, const uint8_t *key);
-uint8_t *  AES_128_ECB_PKCS5Padding_Decrypt(const char *in, const uint8_t* key);
+char* AES_128_ECB_PKCS5Padding_Encrypt(const char *in,const uint8_t *key);
+char* AES_128_ECB_PKCS5Padding_Decrypt(const char *in, const uint8_t* key);
 void test(void);
 void test_encrypt_ecb(uint8_t* buffer);
 void test_decrypt_ecb(void);
@@ -23,9 +23,5 @@ void test_encrypt_cbc(void);
 void test_decrypt_cbc(void);
 void test_test_encrypt_ecb_padding(void);
 void LOGEX(uint8_t* src,const int length);
-
-static char staticStr[]="abc";
-//static char staticCount=1;
-static char* add( const char *str);
 
 #endif //HELLO_JNI_HELLO_JNI_H

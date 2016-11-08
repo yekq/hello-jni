@@ -106,27 +106,18 @@ JNIEXPORT jstring JNICALL Java_com_example_hellojni_HelloJni_decodeFromC
 
 JNIEXPORT jstring JNICALL
 Java_com_example_hellojni_HelloJni_getAESEn(JNIEnv *env, jobject instance, jstring str_) {
-//    uint8_t out[16];
-//    memset(out,0,16);
-//    test_encrypt_ecb(out);
-
-//    test_encrypt_ecb_verbose();
-//    char * a="hellowrld,123456";
-//    char *base64en=base64_encode(a,strlen(a));
-//    LOGE(base64en);
-//    test_decrypt_ecb();
-
-//    unsigned char a1=HEX[0];
-//    unsigned char a2=HEX[1];
-//    unsigned char a14=HEX[14];
-//    unsigned char a15=HEX[15];
-    const uint8_t *in= (const uint8_t *) (*env)->GetStringUTFChars(env, str_, JNI_FALSE);
-//    uint8_t in[]="1234567890abcdef12";
-    const uint8_t key[]="1234567890abcdef";
-    uint8_t *out2=NULL;
-    char *baseResult= AES_128_ECB_PKCS5Padding_Encrypt(in, out2, key);
+    const char *in=  (*env)->GetStringUTFChars(env, str_, JNI_FALSE);
+    char *baseResult= AES_128_ECB_PKCS5Padding_Encrypt(in,  AES_KEY);
     (*env)->ReleaseStringUTFChars(env, str_, in);
     return (*env)->NewStringUTF(env,baseResult);
+}
+JNIEXPORT jstring JNICALL
+Java_com_example_hellojni_HelloJni_getAESDe(JNIEnv *env, jobject instance, jstring str_) {
+    const char *str = (*env)->GetStringUTFChars(env, str_, JNI_FALSE);
+
+    char * desResult=AES_128_ECB_PKCS5Padding_Decrypt(str,AES_KEY);
+    (*env)->ReleaseStringUTFChars(env, str_, str);
+    return (*env)->NewStringUTF(env, desResult);
 }
 
 void test(void)
@@ -246,7 +237,7 @@ void test_encrypt_ecb(uint8_t buffer[])
 /**
  * 不定长加密,pkcs5padding
  */
-char* AES_128_ECB_PKCS5Padding_Encrypt(uint8_t *in, uint8_t *out, const uint8_t *key)
+char* AES_128_ECB_PKCS5Padding_Encrypt(const char *in, const uint8_t *key)
 {
 
 //    uint8_t key[] = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'a', 'b', 'c', 'd', 'e', 'f'};
@@ -259,7 +250,8 @@ char* AES_128_ECB_PKCS5Padding_Encrypt(uint8_t *in, uint8_t *out, const uint8_t 
     int inLength= (int) strlen(in);//输入的长度
     int remainder = inLength % 16;
     LOGE("输入: ");
-    LOGEX(in,inLength);
+//    LOGEX(in,inLength);
+    LOGE(in);
     LOGE("输入,转码:");
     LOGE(base64_encode(in, inLength));
     LOGE("key:");
@@ -301,11 +293,11 @@ char* AES_128_ECB_PKCS5Padding_Encrypt(uint8_t *in, uint8_t *out, const uint8_t 
     }
     int count=paddingInputLengt / 16;
     //开始分段加密
-    out=(uint8_t*)malloc(paddingInputLengt);
+    char * out=(char*)malloc(paddingInputLengt);
     for (int i = 0; i < count; ++i) {
         AES128_ECB_encrypt(paddingInput+i*16, key, out+i*16);
     }
-    size_t enOutSize=strlen(out);
+//    size_t enOutSize=strlen(out);
     char * base64En=base64_encode(out,paddingInputLengt);
     LOGE(base64En);
     free(paddingInput);
@@ -315,7 +307,7 @@ char* AES_128_ECB_PKCS5Padding_Encrypt(uint8_t *in, uint8_t *out, const uint8_t 
 /**
  * 不定长解密,pkcs5padding
  */
-uint8_t * AES_128_ECB_PKCS5Padding_Decrypt(const char *in, const uint8_t* key)
+char * AES_128_ECB_PKCS5Padding_Decrypt(const char *in, const uint8_t* key)
 {
     //加密前:1
     //key:1234567890abcdef
@@ -325,10 +317,12 @@ uint8_t * AES_128_ECB_PKCS5Padding_Decrypt(const char *in, const uint8_t* key)
 //    in="qkrxxA9fIF636aITDRJhcg==";//1
 //    in="LuD5WoRRcHq1tuEWZQHLHwLexWUsAhX5OvafAJ8PbVg=";//abcdefghijklmnop
 //    in="+R99oRBuckos5mdUqQHHeoja4/HYqWtqTM3cgl+E0a3p5i7DoLeBpq/mVUfuEh5D1VRn4Wt4TzHazvz931WfiA==";//57yW56CB5Y6f55CGOuWwhjPkuKrlrZfoioLovazmjaLmiJA05Liq5a2X6IqC
-    in="UUNc8Dh0OVZE9UyzJwWTSVkt3hgIxg0nfVHpSirRL3T1meUZDRUINWvoYfkcOEpL";//编码原理:将3个字节转换成4个字节
-    key="1234567890abcdef";
-    uint8_t *inputDesBase64= (uint8_t *) base64_decode(in, strlen(in));
-    const size_t inputLength=strlen(inputDesBase64);
+//    in="UUNc8Dh0OVZE9UyzJwWTSVkt3hgIxg0nfVHpSirRL3T1meUZDRUINWvoYfkcOEpL";//编码原理:将3个字节转换成4个字节
+//    in="Yrl8Sryq7Kpce4UWRfG3bBBYpzXv59Muj0wjkJYRHFb73CogeDRfQCXsjSfxTe0gibaf+f1FLekwow0f1W9stJy3q7CNOPzkSJVdCtyZvIxMxLwz9hyatUJnU4Nq6i2gkaiCZcwHuDtrAHpEoy1k0vudpWhGu2457iSc40Tqw4tQnxKX18DcKNG5/KPUM+A5Y9a3FxaAy84Turio78b+6A==";//{"Json解析":"支持格式化高亮折叠","支持XML转换":"支持XML转换Json,Json转XML","Json格式验证":"更详细准确的错误信息"}
+//    uint8_t *inputDesBase64= (uint8_t *) base64_decode(in, strlen(in));
+//    const size_t inputLength=strlen(inputDesBase64);
+    uint8_t *inputDesBase64=base64_decode(in,strlen(in));
+    const size_t inputLength= (strlen(in) / 4) * 3;
     uint8_t *out=malloc(inputLength);
     memset(out,0,inputLength);
     //Base64转码
@@ -338,23 +332,66 @@ uint8_t * AES_128_ECB_PKCS5Padding_Decrypt(const char *in, const uint8_t* key)
         count=1;
     }
     for (size_t i = 0; i < count; ++i) {
-            AES128_ECB_decrypt(inputDesBase64+i*16,key,out+i*16);
+        AES128_ECB_decrypt(inputDesBase64+i*16,key,out+i*16);
     }
-    int success=JNI_TRUE;
-    int lastChar=(int)out[inputLength-1];
-    for (int i = 0; i < lastChar; ++i) {
-        size_t index=inputLength-lastChar+i;
-        if (!HEX[lastChar]==out[index])
+
+    /**
+     *  接下来的工作就把末尾的padding去掉T_T
+     *  "abcdefghijklmnop\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\0\0\0\0
+     *  To "abcdefghijklmnop\n"
+     *
+     *  "1\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f"
+     *  To "1\n"
+     */
+    int* result=findPaddingIndex(out,inputLength-1);
+    int offSetIndex=result[0];
+    int lastChar=result[1];
+    //检查是不是padding的字符,然后去掉
+    const size_t noZeroIndex=inputLength-offSetIndex;
+    if (lastChar>=0 && offSetIndex>=0)
+    {
+        int success=JNI_TRUE;
+        for (int i = 0; i < lastChar; ++i) {
+            size_t index=noZeroIndex-lastChar+i;//这里
+            if (!HEX[lastChar]==out[index])
+            {
+                success=JNI_FALSE;
+            }
+        }
+        if(JNI_TRUE==success)
         {
-            success=JNI_FALSE;
+            out[noZeroIndex-lastChar]='\n';
+            memset(out+noZeroIndex-lastChar+1,0,lastChar-1);
+        }
+    }else
+    {
+        out[noZeroIndex]='\n';
+    }
+    return (char *) out;
+}
+
+int* findPaddingIndex(uint8_t * str,size_t length)
+{
+    int result[]={-1,-1};
+    for (int i = 0; i < length; ++i) {
+        char c=str[length-i];
+        if ('\0'!=c)
+        {
+            result[0]=i;
+            for (int k = 0; k < 16; ++k) {
+                if (HEX[k]==c)
+                {
+                    if (0==k)
+                    {
+                        k=16;
+                    }
+                    result[1]=k;
+                    return result;
+                }
+            }
+            return result;
         }
     }
-    if(JNI_TRUE==success)
-    {
-        out[inputLength-lastChar]='\n';
-        memset(out+inputLength-lastChar+1,0,lastChar-1);
-    }
-    return out;
 }
 
 void test_decrypt_cbc(void)
@@ -427,7 +464,7 @@ void test_decrypt_ecb(void)
     uint8_t buffer[16];
     uint8_t key[]="1234567890abcdef";
     uint8_t in[]="qKCRVZ8FzL4t4oPFg/h1aqASwxI=";
-    AES128_ECB_decrypt(base64_decode(in,strlen(in)), key, buffer);
+//    AES128_ECB_decrypt(base64_decode(in,strlen(in)), key, buffer);
     LOGE(unsignedCharToChar(buffer,strlen(buffer)));
     printf("ECB decrypt: ");
 
@@ -441,34 +478,3 @@ void test_decrypt_ecb(void)
     }
 }
 //-------------------------------------AES128-------------------------------------
-
-static char* add( const char *str)
-{
-//     char staticStr[10]="abc";
-    strcat(staticStr,str);
-    return staticStr;
-}
-JNIEXPORT jstring JNICALL
-Java_com_example_hellojni_HelloJni_testStatic(JNIEnv *env, jobject instance, jstring str_) {
-    const char *str = (*env)->GetStringUTFChars(env, str_, 0);
-
-
-//    (*env)->ReleaseStringUTFChars(env, str_, str);
-//    staticCount++;
-//    staticStr[0]=staticCount;
-    return (*env)->NewStringUTF(env, add(str));
-}
-
-
-JNIEXPORT jstring JNICALL
-Java_com_example_hellojni_HelloJni_getAESDe(JNIEnv *env, jobject instance, jstring str_) {
-/*    const char *str = (*env)->GetStringUTFChars(env, str_, 0);
-
-    // TODO
-
-    (*env)->ReleaseStringUTFChars(env, str_, str);
-
-    return (*env)->NewStringUTF(env, returnValue);*/
-    char * desResult=AES_128_ECB_PKCS5Padding_Decrypt(NULL,NULL);
-    return (*env)->NewStringUTF(env, desResult);
-}
